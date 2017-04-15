@@ -31,6 +31,11 @@ def parse_project!
   YAML.load yaml
 end
 
+# javajava -> filter -> javajava
+def filter_javajava(javajava, filter)
+  javajava.select {|java| java.fetch('filename') == filter}
+end
+
 # String -> String
 def generate_java(filename)
   class_name = File.basename(filename, '.java')
@@ -66,8 +71,9 @@ def command_init(prefix, num_file)
   generate_empty_javajava(javajava)
 end
 
-def command_build
+def command_build(filter = nil)
   javajava = parse_project!
+  javajava = filter_javajava(javajava, filter) if filter
   javajava.each do |java|
     filename = java.fetch('filename')
     build_cmd = java.fetch('build')
@@ -78,8 +84,9 @@ def command_build
   end
 end
 
-def command_execute
+def command_execute(filter = nil)
   javajava = parse_project!
+  javajava = filter_javajava(javajava, filter) if filter
   javajava.each do |java|
     filename = java.fetch('filename')
     run_cmd = java.fetch('run')
@@ -90,15 +97,42 @@ def command_execute
   end
 end
 
-def command_run
-  command_build
-  command_execute
+def command_run(filter = nil)
+  command_build(filter)
+  command_execute(filter)
 end
 
 
 def main
   subcommand = ARGV.shift
-  print_help unless %(init build execute run lint).include?(subcommand)
+  print_help if subcommand.nil? || !%(init build execute run lint).include?(subcommand)
+
+  case subcommand
+  when "init"
+    prefix = ARGV.shift
+    num_file = ARGV.shift
+
+    if prefix.nil? || num_file.nil?
+      puts "usage: pro2 init <prefix> <num_file>"
+      puts "    <prefix>\tX for ProbXY"
+      puts "    <num_file>\tlargest Y for ProbXY"
+      puts "`pro2 init 2 3` will create these files:"
+      puts " - project.yaml"
+      puts " - Prob21.java"
+      puts " - Prob22.java"
+      puts " - Prob23.java"
+      exit 1
+    end
+    command_init(prefix.to_i, num_file.to_i)
+  when "build"
+    command_build(ARGV.shift)
+  when "execute"
+    command_execute(ARGV.shift)
+  when "run"
+    command_run(ARGV.shift)
+  else
+    print_help
+  end
 end
 
 def print_help
@@ -118,3 +152,7 @@ end
 # pro2 execute -> execute entries
 # pro2 run -> compile & execute entries
 # pro2 lint -> linter
+
+
+
+main
