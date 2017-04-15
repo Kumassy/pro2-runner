@@ -24,8 +24,10 @@ def initialize_project(prefix, num_file)
 end
 
 # :: javajava
-def parse_project
-  yaml = File.read('project.yaml')
+def parse_project!
+  project_file = 'project.yaml'
+  raise "#{project_file} not found!! Run `pro2 init`" unless File.exists? project_file
+  yaml = File.read(project_file)
   YAML.load yaml
 end
 
@@ -65,10 +67,52 @@ def command_init(prefix, num_file)
 end
 
 def command_build
-  
+  javajava = parse_project!
+  javajava.each do |java|
+    filename = java.fetch('filename')
+    build_cmd = java.fetch('build')
+
+    puts "Build #{filename} ..."
+    puts %x(#{build_cmd})
+    puts ""
+  end
+end
+
+def command_execute
+  javajava = parse_project!
+  javajava.each do |java|
+    filename = java.fetch('filename')
+    run_cmd = java.fetch('run')
+
+    puts "Execute #{filename} ..."
+    puts %x(#{run_cmd})
+    puts ""
+  end
+end
+
+def command_run
+  command_build
+  command_execute
 end
 
 
+def main
+  subcommand = ARGV.shift
+  print_help unless %(init build execute run lint).include?(subcommand)
+end
+
+def print_help
+  puts %{
+usage: pro2 <command> [<args>]
+
+Following commands are available:
+    init   \tCreate an empty Java files and project.yaml
+    build  \tBuild Java files based on project.yaml
+    execute\tExecute Java files based on project.yaml
+    run    \tBuild Java files and run them (equivalent to `pro2 build && pro2 execute`)
+}
+  exit 1
+end
 # pro2 init -> generate project.yml
 # pro2 build -> compile entries
 # pro2 execute -> execute entries
